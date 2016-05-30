@@ -56,12 +56,26 @@ RUN pecl install xdebug && \
 # fxp (for Yii's extension)
 # RUN composer global require "fxp/composer-asset-plugin:~1.1.1"
 
-RUN a2enmod rewrite
 RUN rm -f /etc/apache2/sites-enabled/000-default.conf
+RUN sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf;\
+    a2enmod headers rewrite vhost_alias ;
 
 ADD run.sh /run.sh
 
 VOLUME ["/var/log/apache2"]
+
+ENV DOCKER_USER_ID 501 
+ENV DOCKER_USER_GID 20
+
+ENV DOCKER_MACHINE_ID 1000
+ENV DOCKER_MACHINE_GID 50
+
+# Tweaks to give Apache/PHP write permissions to the app
+RUN usermod -u ${DOCKER_MACHINE_ID} www-data && \
+    usermod -G staff www-data
+
+RUN groupmod -g $(($DOCKER_MACHINE_GID + 10000)) $(getent group $DOCKER_MACHINE_GID | cut -d: -f1)
+RUN groupmod -g ${DOCKER_MACHINE_GID} staff
 
 EXPOSE 80
 
